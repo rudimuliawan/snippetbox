@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"html/template"
+	"errors"
+	"github.com/rudimuliawan/snippetbox/internal/models"
 	"net/http"
 	"strconv"
 )
@@ -13,23 +13,13 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	files := []string{
-		"./ui/html/base.html",
-		"./ui/html/partials/nav.html",
-		"./ui/html/pages/home.html",
-	}
-
-	ts, err := template.ParseFiles(files...)
+	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	err = ts.Execute(w, nil)
-	if err != nil {
-		app.serverError(w, r, err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	app.render(w, r, http.StatusOK, "home.html", templateData{Snippets: snippets})
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +29,20 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+	snippet, err := app.snippets.Get(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.notFound(w)
+			return
+		} else {
+			app.serverError(w, r, err)
+		}
+	}
+
+	data := app.newTemplateData(r)
+	data.Snippet = snippet
+
+	app.render(w, r, http.StatusOK, "view.html", data)
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
