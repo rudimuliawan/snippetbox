@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/rudimuliawan/snippetbox/internal/models"
 	"html/template"
 	"path/filepath"
 	"time"
+
+	"github.com/rudimuliawan/snippetbox/internal/models"
 )
 
 type templateData struct {

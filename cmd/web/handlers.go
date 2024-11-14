@@ -2,9 +2,10 @@ package main
 
 import (
 	"errors"
-	"github.com/rudimuliawan/snippetbox/internal/models"
 	"net/http"
 	"strconv"
+
+	"github.com/rudimuliawan/snippetbox/internal/models"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +41,7 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 	data.Snippet = snippet
 
-	app.render(w, r, 200, "view.gohtml", data)
+	app.render(w, r, http.StatusOK, "view.gohtml", data)
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
