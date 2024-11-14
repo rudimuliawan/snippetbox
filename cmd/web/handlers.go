@@ -1,58 +1,56 @@
 package main
 
 import (
-	"fmt"
-	"html/template"
-	"log"
+	"errors"
+	"github.com/rudimuliawan/snippetbox/internal/models"
 	"net/http"
 	"strconv"
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Server", "Go")
-
-	files := []string{
-		"./ui/html/pages/home.gohtml",
-		"./ui/html/partials/nav.gohtml",
-		"./ui/html/base.gohtml",
-	}
-
-	ts, err := template.ParseFiles(files...)
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
+	snippets, err := app.snippets.Latest()
 	if err != nil {
-		log.Print(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		app.serveError(w, r, err)
 		return
 	}
 
-	err = ts.ExecuteTemplate(w, "base", nil)
-	if err != nil {
-		log.Print(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	data := app.newTemplateData(r)
+	data.Snippets = snippets
+
+	app.render(w, r, http.StatusOK, "home.gohtml", data)
 }
 
-func snippetView(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	if err != nil || id < 1 {
 		http.NotFound(w, r)
 		return
 	}
 
-	msg := fmt.Sprintf("Display a specific snippet %d\n", id)
-	_, err = w.Write([]byte(msg))
+	snippet, err := app.snippets.Get(id)
 	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serveError(w, r, err)
+		}
 		return
 	}
+
+	data := app.newTemplateData(r)
+	data.Snippet = snippet
+
+	app.render(w, r, 200, "view.gohtml", data)
 }
 
-func snippetCreate(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte("Display a form for creating a new snippet..."))
 	if err != nil {
 		return
 	}
 }
 
-func snippetCreatePost(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte("Save a new snippet..."))
 	if err != nil {
 		return
