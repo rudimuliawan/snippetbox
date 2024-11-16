@@ -2,8 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/rudimuliawan/snippetbox/internal/models"
 )
@@ -45,15 +48,40 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write([]byte("Display a form for creating a new snippet..."))
-	if err != nil {
-		return
-	}
+	data := app.newTemplateData(r)
+
+	app.render(w, r, http.StatusOK, "create.gohtml", data)
 }
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write([]byte("Save a new snippet..."))
+	err := r.ParseForm()
 	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
 		return
 	}
+
+	title := r.PostForm.Get("title")
+	content := r.PostForm.Get("content")
+
+	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	fieldErrors := make(map[string]string)
+
+	if strings.TrimSpace(title) == "" {
+		fieldErrors["title"] = "This field cannot be blank"
+	} else if utf8.RuneCountInString(title) > 100 {
+		fieldErrors["title"] = "This field cannot be more than 100 characters long"
+	}
+
+	id, err := app.snippets.Insert(title, content, expires)
+	if err != nil {
+		app.serveError(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }
