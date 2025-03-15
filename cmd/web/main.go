@@ -1,26 +1,67 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/rudimuliawan/snippetbox/internal/models"
 )
 
 type application struct {
-	logger *slog.Logger
+	logger        *slog.Logger
+	snippets      *models.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
 	addr := flag.String("addr", ":8080", "http service address")
+	dsn := flag.String("dsn", "root:rudi@/snippetbox?parseTime=true", "MySQL data source name")
 	flag.Parse()
 
-	app := &application{logger: slog.New(slog.NewJSONHandler(os.Stdout, nil))}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	app.logger.Info("starting server", "addr", *addr)
-
-	err := http.ListenAndServe(*addr, app.routes())
+	db, err := openDB(*dsn)
 	if err != nil {
-		app.logger.Error(err.Error())
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
+	defer db.Close()
+
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	app := &application{
+		logger:        logger,
+		snippets:      &models.SnippetModel{DB: db},
+		templateCache: templateCache,
+	}
+
+	logger.Info("starting server", "addr", *addr)
+
+	err = http.ListenAndServe(*addr, app.routes())
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+}
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
