@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/rudimuliawan/snippetbox/internal/validator"
 	"net/http"
 	"strconv"
+
+	"github.com/rudimuliawan/snippetbox/internal/validator"
 )
 
 type snippetCreateForm struct {
-	Title   string
-	Content string
-	Expires int
-	validator.Validator
+	Title               string `form:"title"`
+	Content             string `form:"content"`
+	Expires             int    `form:"expires"`
+	validator.Validator `form:"-"`
 }
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +44,7 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
 	data := app.newTemplateData(r)
 	data.Snippet = snippet
+	data.Flash = app.sessionManager.PopString(r.Context(), "flash")
 
 	app.render(w, r, http.StatusOK, "view.tmpl", data)
 }
@@ -56,21 +58,9 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
-	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
 	var form snippetCreateForm
 
-	err = app.decodePostForm(r, &form)
+	err := app.decodePostForm(r, &form)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -89,11 +79,13 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	id, err := app.snippets.Insert(form.Title, form.Content, expires)
+	id, err := app.snippets.Insert(form.Title, form.Content, form.Expires)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Snippet successfully created")
 
 	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }

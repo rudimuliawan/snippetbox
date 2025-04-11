@@ -3,13 +3,13 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"github.com/alexedwards/scs/mysqlstore"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	"github.com/rudimuliawan/snippetbox/internal/models"
