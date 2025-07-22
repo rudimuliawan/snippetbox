@@ -44,7 +44,7 @@ func main() {
 		templateCache: templateCache,
 	}
 
-	logger.Info("Starting server on %s\n", *addr)
+	logger.Info("Starting server", slog.Any("address", *addr))
 
 	err = http.ListenAndServe(*addr, app.Routes())
 	logger.Error(err.Error())
