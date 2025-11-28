@@ -1,6 +1,9 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	var (
@@ -14,4 +17,10 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 
 func (app *application) clientError(w http.ResponseWriter, status int) {
 	http.Error(w, http.StatusText(status), status)
+}
+
+func (app *application) newTemplateData(r *http.Request) templateData {
+	return templateData{
+		CurrentYear: time.Now().Year(),
+	}
 }
