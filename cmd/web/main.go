@@ -63,11 +63,12 @@ func main() {
 		Handler:      app.routes(),
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 		IdleTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second}
+		WriteTimeout: 5 * time.Second,
+	}
 
 	logger.Info("starting server", "addr", *addr)
 
-	err = srv.ListenAndServe()
+	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	logger.Error(err.Error())
 	os.Exit(1)
 }
