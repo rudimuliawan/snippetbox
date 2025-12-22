@@ -4,14 +4,14 @@ import (
 	"net/http"
 
 	"github.com/justinas/alice"
+	"github.com/rudimuliawan/snippetbox/ui"
 )
 
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
 	// static file endpoint
-	fileServer := http.FileServer(http.Dir("./ui/static"))
-	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
+	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
 
 	// snippet endpoint
 	dynamic := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
