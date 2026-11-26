@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"fmt"
 	"html/template"
 	"log"
 	"log/slog"
@@ -25,9 +24,7 @@ func main() {
 	dsn := flag.String("dsn", "", "Database connection string")
 
 	flag.Parse()
-
-	fmt.Println(*dsn)
-
+	
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	db, err := openDB(*dsn)

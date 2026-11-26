@@ -21,7 +21,6 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		app.serverError(w, r, err)
 	}
-
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
