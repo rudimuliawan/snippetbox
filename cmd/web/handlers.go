@@ -1,41 +1,56 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
-	"text/template"
+
+	"github.com/rudimuliawan/snippetbox/internal/models"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	files := []string{
-		"./assets/html/base.tmpl",
-		"./assets/html/partials/nav.tmpl",
-		"./assets/html/pages/homes.tmpl",
-	}
-
-	ts, err := template.ParseFiles(files...)
+	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	err = ts.ExecuteTemplate(w, "base", nil)
+	data := templateData{
+		Snippets: snippets,
+	}
+
+	err = app.render(w, r, http.StatusOK, "home.tmpl", data)
 	if err != nil {
 		app.serverError(w, r, err)
-		return
 	}
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil || id < 0 {
+	if err != nil || id <= 0 {
 		http.NotFound(w, r)
 		return
 	}
 
-	msg := fmt.Sprintf("Display a specific snippet with ID %d...", id)
-	w.Write([]byte(msg))
+	snippet, err := app.snippets.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, models.ErrNoRecord):
+			http.NotFound(w, r)
+		default:
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data := templateData{
+		Snippet: snippet,
+	}
+
+	err = app.render(w, r, http.StatusOK, "view.tmpl", data)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +59,6 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", "Go")
-	w.Header().Add("Conten-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(`{"name": "rudi"}`))
 }

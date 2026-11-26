@@ -1,28 +1,69 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
+	"fmt"
+	"html/template"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/rudimuliawan/snippetbox/internal/models"
 )
 
 type application struct {
-	logger *slog.Logger
+	logger        *slog.Logger
+	snippets      *models.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
+	dsn := flag.String("dsn", "", "Database connection string")
 
 	flag.Parse()
 
+	fmt.Println(*dsn)
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	db, err := openDB(*dsn)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
 	app := &application{
-		logger: slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+		logger:        logger,
+		snippets:      &models.SnippetModel{DB: db},
+		templateCache: templateCache,
 	}
 
 	app.logger.Info("Starting server", "addr", *addr)
 
-	err := http.ListenAndServe(*addr, app.routes())
+	err = http.ListenAndServe(*addr, app.routes())
 	log.Fatal(err)
+}
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
