@@ -11,7 +11,7 @@ type Validator struct {
 }
 
 func (v *Validator) IsValid() bool {
-	return len(v.FieldErrors) > 0
+	return len(v.FieldErrors) == 0
 }
 
 func (v *Validator) AddFieldError(field string, msg string) {
